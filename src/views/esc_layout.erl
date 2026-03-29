@@ -10,7 +10,6 @@ render(Bindings) ->
                 {meta, [{charset, ~"UTF-8"}]},
                 {meta, [{name, ~"viewport"}, {content, ~"width=device-width, initial-scale=1.0"}]},
                 {title, [], ~"Erlang Secure Coding"},
-                {script, [{src, ~"https://cdn.tailwindcss.com"}], []},
                 {link, [{rel, ~"stylesheet"}, {href, ~"/assets/css/app.css"}]}
             ]},
             {body, [{class, ~"bg-gray-50 min-h-screen"}], [
