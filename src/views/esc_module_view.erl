@@ -6,7 +6,11 @@
     render_nav_buttons/1,
     render_quiz/1,
     render_score_banner/1,
-    render_submit_button/1
+    render_submit_button/1,
+    render_code_example/1,
+    render_question/1,
+    render_option/1,
+    render_explanation/1
 ]).
 
 mount(Bindings0) ->
@@ -83,10 +87,8 @@ render_module_content(Props) ->
             {'div', [{class, ~"mb-8"}], [
                 {'div', [{class, ~"flex items-center gap-3 mb-2"}], [
                     {span,
-                        [
-                            {class,
-                                ~"bg-indigo-100 text-indigo-700 text-sm font-semibold px-2.5 py-0.5 rounded"}
-                        ],
+                        [{class,
+                            ~"bg-indigo-100 text-indigo-700 text-sm font-semibold px-2.5 py-0.5 rounded"}],
                         [~"Module ", Num]},
                     {span, [{class, ~"text-gray-400 text-sm"}], [Mins, ~" min"]}
                 ]},
@@ -97,7 +99,7 @@ render_module_content(Props) ->
                 {'div', [{class, ~"prose prose-gray max-w-none mb-6"}], SContent},
                 ?each(
                     fun(Example) ->
-                        render_code_example(Example)
+                        ?stateless(render_code_example, Example)
                     end,
                     CodeExamples
                 )
@@ -116,9 +118,12 @@ render_module_content(Props) ->
         ]}
     ).
 
-render_code_example(#{title := ETitle, code := Code, explanation := Expl} = Example) ->
-    IsVuln = maps:get(vulnerable, Example, false),
-    Output = maps:get(output, Example, ~""),
+render_code_example(Props) ->
+    ETitle = maps:get(title, Props),
+    Code = maps:get(code, Props),
+    Expl = maps:get(explanation, Props),
+    IsVuln = maps:get(vulnerable, Props, false),
+    Output = maps:get(output, Props, ~""),
     BorderClass = vuln_border_class(IsVuln),
     HeaderClass = vuln_header_class(IsVuln),
     TextClass = vuln_text_class(IsVuln),
@@ -126,9 +131,9 @@ render_code_example(#{title := ETitle, code := Code, explanation := Expl} = Exam
     ?html(
         {'div', [{class, [~"my-6 rounded-lg border ", BorderClass]}], [
             {'div', [{class, [~"px-4 py-2 border-b ", HeaderClass, ~" flex items-center gap-2"]}], [
-                    {span, [{class, [~"text-sm font-medium ", TextClass]}], Label},
-                    {span, [{class, ~"text-sm text-gray-600"}], ETitle}
-                ]},
+                {span, [{class, [~"text-sm font-medium ", TextClass]}], Label},
+                {span, [{class, ~"text-sm text-gray-600"}], ETitle}
+            ]},
             {pre, [{class, ~"p-4 overflow-x-auto"}], [
                 {code, [{class, ~"language-erlang text-sm"}], Code}
             ]},
@@ -178,10 +183,8 @@ render_nav_buttons(Props) ->
                 false ->
                     ?html(
                         {span,
-                            [
-                                {class,
-                                    ~"px-4 py-2 bg-green-100 text-green-700 rounded text-sm font-medium"}
-                            ],
+                            [{class,
+                                ~"px-4 py-2 bg-green-100 text-green-700 rounded text-sm font-medium"}],
                             ~"All sections complete!"}
                     )
             end
@@ -205,15 +208,15 @@ render_quiz(Props) ->
             end,
             ?each(
                 fun(#{id := QId, prompt := Prompt, options := Options}) ->
-                    render_question(
-                        QId,
-                        Prompt,
-                        Options,
-                        QuizAnswers,
-                        QuizResults,
-                        QuizSubmitted,
-                        ShowExplanations
-                    )
+                    ?stateless(render_question, #{
+                        qid => QId,
+                        prompt => Prompt,
+                        options => Options,
+                        quiz_answers => QuizAnswers,
+                        quiz_results => QuizResults,
+                        quiz_submitted => QuizSubmitted,
+                        show_explanations => ShowExplanations
+                    })
                 end,
                 Quiz
             ),
@@ -230,21 +233,13 @@ render_score_banner(Props) ->
     {BannerClass, TextClass} =
         case C =:= T of
             true ->
-                {
-                    ~"mb-6 p-4 rounded-lg bg-green-50 border border-green-200",
-                    ~"font-semibold text-green-700"
-                };
+                {~"mb-6 p-4 rounded-lg bg-green-50 border border-green-200",
+                 ~"font-semibold text-green-700"};
             false ->
-                {
-                    ~"mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200",
-                    ~"font-semibold text-yellow-700"
-                }
+                {~"mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200",
+                 ~"font-semibold text-yellow-700"}
         end,
-    Suffix =
-        case C =:= T of
-            true -> ~" -- Perfect!";
-            false -> ~""
-        end,
+    Suffix = case C =:= T of true -> ~" -- Perfect!"; false -> ~"" end,
     ?html(
         {'div', [{class, BannerClass}], [
             {p, [{class, TextClass}], [~"Score: ", C, ~" / ", T, Suffix]}
@@ -261,6 +256,106 @@ render_submit_button(_Props) ->
             ],
             ~"Submit Answers"}
     ).
+
+render_question(Props) ->
+    QId = maps:get(qid, Props),
+    Answers = maps:get(quiz_answers, Props),
+    Results = maps:get(quiz_results, Props),
+    Submitted = maps:get(quiz_submitted, Props),
+    ShowExplanations = maps:get(show_explanations, Props),
+    SelectedAnswer = maps:get(QId, Answers, undefined),
+    Result = maps:get(QId, Results, undefined),
+    ShowExpl = maps:get(QId, ShowExplanations, false),
+    ?html(
+        {'div', [{class, ~"mb-6 p-4 rounded-lg border border-gray-200"}], [
+            {p, [{class, ~"font-medium text-gray-900 mb-3"}], maps:get(prompt, Props)},
+            {'div', [{class, ~"space-y-2"}], [
+                ?each(
+                    fun(#{id := OId, text := OText}) ->
+                        ?stateless(render_option, #{
+                            qid => QId,
+                            oid => OId,
+                            text => OText,
+                            selected => SelectedAnswer =:= OId,
+                            submitted => Submitted,
+                            result => Result
+                        })
+                    end,
+                    maps:get(options, Props)
+                )
+            ]},
+            ?stateless(render_explanation, #{
+                submitted => Submitted,
+                result => Result,
+                show_expl => ShowExpl,
+                qid => QId
+            })
+        ]}
+    ).
+
+render_option(Props) ->
+    IsSelected = maps:get(selected, Props),
+    BaseClass =
+        case IsSelected of
+            true -> ~"border-indigo-300 bg-indigo-50";
+            false -> ~"border-gray-100 hover:bg-gray-50"
+        end,
+    ResultClass =
+        case {maps:get(submitted, Props), maps:get(result, Props), IsSelected} of
+            {true, #{correct := true}, true} -> ~" border-green-300 bg-green-50";
+            {true, #{correct := false}, true} -> ~" border-red-300 bg-red-50";
+            _ -> ~""
+        end,
+    QId = maps:get(qid, Props),
+    OId = maps:get(oid, Props),
+    ?html(
+        {label,
+            [{class, [
+                ~"flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-all ",
+                BaseClass,
+                ResultClass
+            ]}],
+            [
+                {input, [
+                    {type, ~"radio"},
+                    {name, [~"q_", QId]},
+                    {value, OId},
+                    {checked, IsSelected},
+                    {class, ~"text-indigo-600"},
+                    {az_click,
+                        arizona_js:push_event(
+                            ~"select_answer",
+                            #{~"question_id" => QId, ~"answer_id" => OId}
+                        )}
+                ]},
+                {span, [{class, ~"text-gray-700"}], maps:get(text, Props)}
+            ]}
+    ).
+
+render_explanation(Props) ->
+    case {maps:get(submitted, Props), maps:get(result, Props), maps:get(show_expl, Props)} of
+        {true, #{explanation := Expl}, true} ->
+            ?html(
+                {'div', [{class, ~"mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg"}], [
+                    {p, [{class, ~"text-sm text-blue-800"}], Expl}
+                ]}
+            );
+        {true, Result, false} when Result =/= undefined ->
+            ?html(
+                {button,
+                    [
+                        {az_click,
+                            arizona_js:push_event(
+                                ~"show_explanation",
+                                #{~"question_id" => maps:get(qid, Props)}
+                            )},
+                        {class, ~"mt-3 text-sm text-indigo-600 hover:underline"}
+                    ],
+                    ~"Show explanation"}
+            );
+        _ ->
+            ~""
+    end.
 
 handle_event(~"next_section", _Params, Bindings) ->
     Current = maps:get(current_section, Bindings),
@@ -284,86 +379,6 @@ handle_event(~"show_explanation", #{~"question_id" := QId}, Bindings) ->
     {Bindings#{show_explanations => Shown#{QId => true}}, #{}, []}.
 
 %% Internal
-
-render_question(QId, Prompt, Options, Answers, Results, Submitted, ShowExplanations) ->
-    SelectedAnswer = maps:get(QId, Answers, undefined),
-    Result = maps:get(QId, Results, undefined),
-    ShowExpl = maps:get(QId, ShowExplanations, false),
-    ?html(
-        {'div', [{class, ~"mb-6 p-4 rounded-lg border border-gray-200"}], [
-            {p, [{class, ~"font-medium text-gray-900 mb-3"}], Prompt},
-            {'div', [{class, ~"space-y-2"}], [
-                ?each(
-                    fun(#{id := OId, text := OText}) ->
-                        render_option(QId, OId, OText, SelectedAnswer, Submitted, Result)
-                    end,
-                    Options
-                )
-            ]},
-            render_explanation(Submitted, Result, ShowExpl, QId)
-        ]}
-    ).
-
-render_option(QId, OId, OText, SelectedAnswer, Submitted, Result) ->
-    IsSelected = SelectedAnswer =:= OId,
-    BaseClass =
-        case IsSelected of
-            true -> ~"border-indigo-300 bg-indigo-50";
-            false -> ~"border-gray-100 hover:bg-gray-50"
-        end,
-    ResultClass =
-        case {Submitted, Result, IsSelected} of
-            {true, #{correct := true}, true} -> ~" border-green-300 bg-green-50";
-            {true, #{correct := false}, true} -> ~" border-red-300 bg-red-50";
-            _ -> ~""
-        end,
-    ?html(
-        {label,
-            [
-                {class, [
-                    ~"flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-all ",
-                    BaseClass,
-                    ResultClass
-                ]}
-            ],
-            [
-                {input, [
-                    {type, ~"radio"},
-                    {name, [~"q_", QId]},
-                    {value, OId},
-                    {checked, IsSelected},
-                    {class, ~"text-indigo-600"},
-                    {az_click,
-                        arizona_js:push_event(
-                            ~"select_answer",
-                            #{~"question_id" => QId, ~"answer_id" => OId}
-                        )}
-                ]},
-                {span, [{class, ~"text-gray-700"}], OText}
-            ]}
-    ).
-
-render_explanation(true, #{explanation := Expl}, true, _QId) ->
-    ?html(
-        {'div', [{class, ~"mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg"}], [
-            {p, [{class, ~"text-sm text-blue-800"}], Expl}
-        ]}
-    );
-render_explanation(true, Result, false, QId) when Result =/= undefined ->
-    ?html(
-        {button,
-            [
-                {az_click,
-                    arizona_js:push_event(
-                        ~"show_explanation",
-                        #{~"question_id" => QId}
-                    )},
-                {class, ~"mt-3 text-sm text-indigo-600 hover:underline"}
-            ],
-            ~"Show explanation"}
-    );
-render_explanation(_, _, _, _) ->
-    ~"".
 
 vuln_border_class(true) -> ~"border-red-200 bg-red-50";
 vuln_border_class(false) -> ~"border-green-200 bg-green-50".
