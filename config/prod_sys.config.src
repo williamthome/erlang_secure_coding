@@ -22,7 +22,6 @@
                    ]}
         ]},
  {arizona_nova, [
-     {pubsub_scope, nova_scope},
      {live_reload, false}
  ]}
 ].
