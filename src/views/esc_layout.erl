@@ -25,12 +25,20 @@ render(Bindings) ->
                 {footer, [{class, ~"text-center text-gray-400 text-sm py-8"}],
                     ~"Built with Nova + Arizona"},
                 {script, [{type, ~"module"}],
-                    ~"""
-                    import { connect } from '/arizona/arizona.min.js';
-                    import { connect as connectReloader } from '/arizona/arizona-reloader.min.js';
-                    connect('/ws');
-                    connectReloader('/arizona/reload');
-                    """}
+                    case application:get_env(arizona_nova, live_reload, false) of
+                        true ->
+                            ~"""
+                            import { connect } from '/arizona/arizona.min.js';
+                            import { connect as connectReloader } from '/arizona/arizona-reloader.min.js';
+                            connect('/ws');
+                            connectReloader('/arizona/reload');
+                            """;
+                        false ->
+                            ~"""
+                            import { connect } from '/arizona/arizona.min.js';
+                            connect('/ws');
+                            """
+                    end}
             ]}
         ]}
     ]).
