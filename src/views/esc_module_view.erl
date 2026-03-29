@@ -198,33 +198,40 @@ render_quiz(Props) ->
     QuizResults = maps:get(quiz_results, Props),
     ShowExplanations = maps:get(show_explanations, Props),
     ?html(
-        {'div', [{class, ~"bg-white rounded-lg shadow-sm border border-gray-200 p-8"}], [
-            {h2, [{class, ~"text-2xl font-semibold text-gray-900 mb-2"}], ~"Knowledge Check"},
-            {p, [{class, ~"text-gray-600 mb-6"}],
-                ~"Test your understanding of this module's concepts."},
-            case QuizSubmitted of
-                true -> ?stateless(render_score_banner, #{quiz_results => QuizResults});
-                false -> ~""
-            end,
-            ?each(
-                fun(#{id := QId, prompt := Prompt, options := Options}) ->
-                    ?stateless(render_question, #{
-                        qid => QId,
-                        prompt => Prompt,
-                        options => Options,
-                        quiz_answers => QuizAnswers,
-                        quiz_results => QuizResults,
-                        quiz_submitted => QuizSubmitted,
-                        show_explanations => ShowExplanations
-                    })
+        {form,
+            [
+                {id, ~"quiz-form"},
+                {az_change, arizona_js:push_event(~"quiz_change")},
+                {az_submit, arizona_js:push_event(~"submit_quiz")},
+                {class, ~"bg-white rounded-lg shadow-sm border border-gray-200 p-8"}
+            ],
+            [
+                {h2, [{class, ~"text-2xl font-semibold text-gray-900 mb-2"}], ~"Knowledge Check"},
+                {p, [{class, ~"text-gray-600 mb-6"}],
+                    ~"Test your understanding of this module's concepts."},
+                case QuizSubmitted of
+                    true -> ?stateless(render_score_banner, #{quiz_results => QuizResults});
+                    false -> ~""
                 end,
-                Quiz
-            ),
-            case QuizSubmitted of
-                false -> ?stateless(render_submit_button, #{});
-                true -> ~""
-            end
-        ]}
+                ?each(
+                    fun(#{id := QId, prompt := Prompt, options := Options}) ->
+                        ?stateless(render_question, #{
+                            qid => QId,
+                            prompt => Prompt,
+                            options => Options,
+                            quiz_answers => QuizAnswers,
+                            quiz_results => QuizResults,
+                            quiz_submitted => QuizSubmitted,
+                            show_explanations => ShowExplanations
+                        })
+                    end,
+                    Quiz
+                ),
+                case QuizSubmitted of
+                    false -> ?stateless(render_submit_button, #{});
+                    true -> ~""
+                end
+            ]}
     ).
 
 render_score_banner(Props) ->
@@ -250,7 +257,7 @@ render_submit_button(_Props) ->
     ?html(
         {button,
             [
-                {az_click, arizona_js:push_event(~"submit_quiz")},
+                {type, ~"submit"},
                 {class,
                     ~"mt-6 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"}
             ],
@@ -318,15 +325,10 @@ render_option(Props) ->
             [
                 {input, [
                     {type, ~"radio"},
-                    {name, [~"q_", QId]},
+                    {name, QId},
                     {value, OId},
                     {checked, IsSelected},
-                    {class, ~"text-indigo-600"},
-                    {az_click,
-                        arizona_js:push_event(
-                            ~"select_answer",
-                            #{~"question_id" => QId, ~"answer_id" => OId}
-                        )}
+                    {class, ~"text-indigo-600"}
                 ]},
                 {span, [{class, ~"text-gray-700"}], maps:get(text, Props)}
             ]}
@@ -344,6 +346,7 @@ render_explanation(Props) ->
             ?html(
                 {button,
                     [
+                        {type, ~"button"},
                         {az_click,
                             arizona_js:push_event(
                                 ~"show_explanation",
@@ -366,14 +369,12 @@ handle_event(~"prev_section", _Params, Bindings) ->
     Current = maps:get(current_section, Bindings),
     Prev = max(Current - 1, 0),
     {Bindings#{current_section => Prev}, #{}, []};
-handle_event(~"select_answer", #{~"question_id" := QId, ~"answer_id" := AId}, Bindings) ->
-    Answers = maps:get(quiz_answers, Bindings),
-    {Bindings#{quiz_answers => Answers#{QId => AId}}, #{}, []};
-handle_event(~"submit_quiz", _Params, Bindings) ->
+handle_event(~"quiz_change", Params, Bindings) ->
+    {Bindings#{quiz_answers => Params}, #{}, []};
+handle_event(~"submit_quiz", Params, Bindings) ->
     #{id := ModuleId} = maps:get(module, Bindings),
-    Answers = maps:get(quiz_answers, Bindings),
-    Results = esc_quiz_grader:grade_quiz(ModuleId, Answers),
-    {Bindings#{quiz_results => Results, quiz_submitted => true}, #{}, []};
+    Results = esc_quiz_grader:grade_quiz(ModuleId, Params),
+    {Bindings#{quiz_answers => Params, quiz_results => Results, quiz_submitted => true}, #{}, []};
 handle_event(~"show_explanation", #{~"question_id" := QId}, Bindings) ->
     Shown = maps:get(show_explanations, Bindings),
     {Bindings#{show_explanations => Shown#{QId => true}}, #{}, []}.
