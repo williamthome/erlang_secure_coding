@@ -1,0 +1,29 @@
+{
+  "name": "erlang_secure_coding",
+  "version": "1.0.0",
+  "description": "Interactive web-based curriculum teaching developers how to write secure Erlang/OTP applications. Covers BEAM VM-specific attack vectors that exist despite Erlang's built-in safety properties.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "css:build": "tailwindcss -i assets/css/app.css -o priv/static/assets/css/app.css --minify",
+    "css:watch": "tailwindcss -i assets/css/app.css -o priv/static/assets/css/app.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/williamthome/erlang_secure_coding.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/williamthome/erlang_secure_coding/issues"
+  },
+  "homepage": "https://github.com/williamthome/erlang_secure_coding#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "tailwindcss": "^4.2.2"
+  }
+}
